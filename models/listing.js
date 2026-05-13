@@ -1,47 +1,65 @@
 const mongoose = require("mongoose");
+const { PRODUCT_CATEGORIES } = require("../utils/productCategories.js");
+
 const Schema = mongoose.Schema;
 
-const listingSchema = new Schema({
-  title: {
-    type: String,
-    required: true,
-  },
-  description: String,
-  image: {
-    filename: {
-      type: String,
-      trim: true,
-      default: "default-listing-image",
-    },
-    url: {
-      type: String,
-      trim: true,
-      default: "https://images.unsplash.com/photo-1506744038136-46273834b3fb",
-    },
-  },
-  price: Number,
-  location: String,
-  country: String,
-  reviews: [
+const DEFAULT_PRODUCT_IMAGE = {
+    filename: "default-product-image",
+    url: "/images/logo.png",
+};
+
+const productSchema = new Schema(
     {
-      type: Schema.Types.ObjectId,
-      ref: "Review",
+        title: {
+            type: String,
+            required: true,
+            trim: true,
+        },
+
+        image: {
+            filename: {
+                type: String,
+                trim: true,
+                default: DEFAULT_PRODUCT_IMAGE.filename,
+            },
+
+            url: {
+                type: String,
+                trim: true,
+                default: DEFAULT_PRODUCT_IMAGE.url,
+            },
+        },
+
+        price: {
+            type: Number,
+            required: true,
+            min: 1,
+        },
+
+        category: {
+            type: String,
+            enum: PRODUCT_CATEGORIES,
+            required: true,
+        },
+
+        owner: {
+            type: Schema.Types.ObjectId,
+            ref: "User",
+            required: true,
+        },
+
+        reviews: [
+            {
+                type: Schema.Types.ObjectId,
+                ref: "Review",
+            },
+        ],
     },
-  ], // <-- missing comma fixed here
+    {
+        strict: true,
+    }
+);
 
-  owner: {
-    type: Schema.Types.ObjectId,
-    ref: "User",
-    required: true,
-  },
+const Product = mongoose.model("Listing", productSchema);
 
-  category: {
-    type: String,
-    enum: ["Country", "City"],
-    default: "Country",
-  },
-});
-
-const Listing = mongoose.model("Listing", listingSchema);
-
-module.exports = Listing;
+module.exports = Product;

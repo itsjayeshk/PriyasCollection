@@ -1,34 +1,28 @@
 const Joi = require("joi");
+const { PRODUCT_CATEGORIES } = require("./utils/productCategories.js");
 
-module.exports.listingSchema = Joi.object({
-  listing: Joi.object({
-    title: Joi.string().required(),
-
-    description: Joi.string().required(),
-
+const productPayloadSchema = Joi.object({
+    title: Joi.string().trim().required(),
     image: Joi.any().optional(),
-
-    price: Joi.number()
-      .required()
-      .min(0),
-
-    location: Joi.string().required(),
-
-    country: Joi.string().required(),
-
+    price: Joi.number().min(1).required(),
     category: Joi.string()
-      .valid("Country", "City", "Other")
-      .required(),
-  }).required(),
+        .valid(...PRODUCT_CATEGORIES)
+        .required(),
 });
 
-module.exports.reviewSchema = Joi.object({
-  review: Joi.object({
-    rating: Joi.number()
-      .required()
-      .min(1)
-      .max(5),
+const productSchema = Joi.object({
+    product: productPayloadSchema,
+    listing: productPayloadSchema,
+})
+    .xor("product", "listing")
+    .required();
 
-    comment: Joi.string().required(),
-  }).required(),
+module.exports.productSchema = productSchema;
+module.exports.listingSchema = productSchema;
+
+module.exports.reviewSchema = Joi.object({
+    review: Joi.object({
+        rating: Joi.number().required().min(1).max(5),
+        comment: Joi.string().trim().required(),
+    }).required(),
 });

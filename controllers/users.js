@@ -19,7 +19,7 @@ module.exports.signup = async (req, res, next) => {
             return next(err);
         }
 
-        req.flash("success", "Welcome to WanderPeeper!");
+        req.flash("success", "Welcome to Priya's Collection!");
         res.redirect("/listings");
     });
 };

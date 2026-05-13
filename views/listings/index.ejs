@@ -1,157 +1,97 @@
 <% layout("/layouts/boilerplate") -%>
-<%= success %>
-<body>
-    <h3>All Listings</h3>
-    <div class="filters-container shadow-lg p-4 rounded-4 mb-5">
 
-    <h4 class="mb-4 fw-bold text-center">
-        Find Your Perfect Stay
-    </h4>
+<section class="collection-header py-4">
+    <div>
+        <p class="text-uppercase text-muted fw-semibold mb-2">Priya's Collection</p>
+        <h1 class="fw-bold mb-2">Products</h1>
+        <p class="text-muted mb-0">Rakhis and Poshaks curated for festive gifting.</p>
+    </div>
+</section>
 
+<section class="filters-container shadow-sm p-4 rounded-3 mb-5">
     <form method="GET" action="/listings">
-
         <div class="row g-3 align-items-end">
-
-            <!-- LOCATION -->
-            <div class="col-lg-5 col-md-12">
-
-                <label for="location" class="form-label fw-semibold">
-                    Location
-                </label>
-
+            <div class="col-lg-7 col-md-12">
+                <label class="form-label fw-semibold" for="search">Search Products</label>
                 <div class="input-group">
-
                     <span class="input-group-text bg-white border-end-0">
-                        <i class="fa-solid fa-location-dot text-danger"></i>
+                        <i class="fa-solid fa-magnifying-glass"></i>
                     </span>
-
                     <input
                         type="text"
                         class="form-control border-start-0 shadow-none"
-                        id="location"
-                        name="location"
-                        placeholder="Search by location"
-                        value="<%= req.query.location || '' %>"
+                        id="search"
+                        name="search"
+                        placeholder="Search by product name"
+                        value="<%= searchQuery %>"
                     >
-
                 </div>
-
             </div>
 
-            <!-- COUNTRY -->
-            <div class="col-lg-4 col-md-12">
-
-                <label for="city" class="form-label fw-semibold">
-                    Country
-                </label>
-
-                <div class="input-group">
-
-                    <span class="input-group-text bg-white border-end-0">
-                        <i class="fa-solid fa-earth-asia text-primary"></i>
-                    </span>
-
-                    <input
-                        type="text"
-                        class="form-control border-start-0 shadow-none"
-                        id="city"
-                        name="city"
-                        placeholder="Search country"
-                        value="<%= req.query.city || '' %>"
-                    >
-
-                </div>
-
+            <div class="col-lg-3 col-md-6">
+                <label class="form-label fw-semibold" for="category">Category</label>
+                <select name="category" id="category" class="form-select">
+                    <option value="">All Products</option>
+                    <% categories.forEach((category) => { %>
+                        <option
+                            value="<%= category %>"
+                            <%= selectedCategory === category ? "selected" : "" %>
+                        >
+                            <%= category %>
+                        </option>
+                    <% }) %>
+                </select>
             </div>
 
-            <!-- BUTTON -->
-            <div class="col-lg-3 col-md-12 d-grid">
-
-                <button type="submit" class="btn filter-btn">
-
-                    <i class="fa-solid fa-magnifying-glass me-2"></i>
-
-                    Search
-
-                </button>
-
+            <div class="col-lg-2 col-md-6 d-grid">
+                <button type="submit" class="btn filter-btn">Search</button>
             </div>
-
         </div>
-
     </form>
+</section>
 
-</div>
-
-<style>
-
-.filters-container{
-    background: #fff;
-    border: 1px solid #eaeaea;
-}
-
-.filters-container h4{
-    color: #222;
-}
-
-.form-control{
-    height: 50px;
-    border-radius: 12px;
-}
-
-.input-group-text{
-    border-radius: 12px 0 0 12px;
-}
-
-.filter-btn{
-    height: 50px;
-    border-radius: 12px;
-    background-color: #fe424d;
-    border: none;
-    color: white;
-    font-weight: 600;
-    transition: all 0.3s ease;
-}
-
-.filter-btn:hover{
-    background-color: #e63946;
-    transform: translateY(-2px);
-}
-
-.form-control:focus{
-    border-color: #fe424d;
-    box-shadow: 0 0 0 0.15rem rgba(254,66,77,0.2);
-}
-
-</style>
-    <div class="row row-cols-lg-3 row-cols-md-2 row-cols-sm-1 g-4">
-        <% for(let listing of allListings) { %>
-            <%
-                const listingImageUrl =
-                    listing.image &&
-                    listing.image.url &&
-                    !listing.image.url.startsWith("/uploads/")
-                        ? listing.image.url
-                        : "https://images.unsplash.com/photo-1506744038136-46273834b3fb";
-            %>
-            <a href="/listings/<%= listing._id %>" class="listing-link"> 
-        <div class="card col" style="width: 20rem;">
-        <img src="<%= listingImageUrl %>" class="card-img-top" alt="listing-image" style="height: 20rem" />
-        <div class="card-img-overlay"></div>
-        <div class="card-body">
-        <p class="card-text">
-            <b><%= listing.title %></b>
-            <br>
-            &#8377; <%= listing.price %> / night
-            <br>
-            <small class="text-muted">Country: <%= listing.country %></small>
-        </p>
+<section class="row row-cols-lg-3 row-cols-md-2 row-cols-sm-1 g-4">
+    <% if (products.length === 0) { %>
+        <div class="col-12">
+            <div class="empty-state text-center p-5 rounded-3">
+                <h2 class="h4 fw-bold mb-2">No products found</h2>
+                <p class="text-muted mb-0">Try a different search or category.</p>
+            </div>
         </div>
-        </div>
-        </a>
     <% } %>
 
+    <% products.forEach((product) => { %>
+        <%
+            const productImageUrl =
+                product.image && product.image.url ? product.image.url : "/images/logo.png";
+        %>
 
-    </div>
-    
-</body>
+        <div class="col">
+            <a href="/listings/<%= product._id %>" class="product-link text-decoration-none">
+                <article class="card product-card h-100 border-0 shadow-sm overflow-hidden">
+                    <img
+                        src="<%= productImageUrl %>"
+                        class="card-img-top product-card-img"
+                        alt="<%= product.title %>"
+                    >
+
+                    <div class="card-body product-card-body">
+                        <div class="d-flex justify-content-between align-items-start gap-3">
+                            <div>
+                                <h2 class="h5 fw-bold text-dark mb-1">
+                                    <%= product.title %>
+                                </h2>
+                                <p class="text-muted mb-0">
+                                    <%= product.category %>
+                                </p>
+                            </div>
+                            <p class="product-price fw-bold mb-0">
+                                Rs. <%= product.price.toLocaleString("en-IN") %>
+                            </p>
+                        </div>
+                    </div>
+                </article>
+            </a>
+        </div>
+    <% }) %>
+</section>

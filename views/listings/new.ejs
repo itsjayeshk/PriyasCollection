@@ -1,173 +1,83 @@
 <% layout("/layouts/boilerplate") -%>
 
-<div class="row">
-  <div class="col-8 offset-2">
-    <br><br><br>
+<div class="row py-5">
+    <div class="col-lg-8 offset-lg-2">
+        <h1 class="h2 fw-bold mb-4">Add Product</h1>
 
-    <h2>Create New Listing</h2>
-
-    <form
-      method="POST"
-      action="/listings"
-      enctype="multipart/form-data"
-      novalidate
-      class="needs-validation"
-    >
-
-      <!-- TITLE -->
-      <div class="mb-3">
-        <label class="form-label">Title</label>
-
-        <input
-          name="listing[title]"
-          type="text"
-          class="form-control"
-          placeholder="Enter listing title"
-          required
+        <form
+            method="POST"
+            action="/listings"
+            enctype="multipart/form-data"
+            novalidate
+            class="needs-validation product-form"
         >
+            <div class="mb-3">
+                <label for="title" class="form-label">Product Title</label>
+                <input
+                    name="product[title]"
+                    id="title"
+                    type="text"
+                    class="form-control"
+                    placeholder="Enter product title"
+                    required
+                >
+                <div class="invalid-feedback">Product title is required.</div>
+            </div>
 
-        <div class="invalid-feedback">
-          Title is required
-        </div>
-      </div>
+            <div class="mb-3">
+                <label for="image" class="form-label">Product Image</label>
+                <input
+                    name="image"
+                    id="image"
+                    type="file"
+                    class="form-control image-upload-input"
+                    accept="image/jpeg,image/png,image/webp"
+                    data-preview-target="productImagePreview"
+                    required
+                >
+                <img
+                    id="productImagePreview"
+                    class="upload-preview d-none"
+                    alt="Selected product preview"
+                >
+                <div class="invalid-feedback">
+                    Upload a JPG, JPEG, PNG, or WEBP product image.
+                </div>
+            </div>
 
-      <!-- DESCRIPTION -->
-      <div class="mb-3">
-        <label class="form-label">Description</label>
+            <div class="mb-3">
+                <label for="price" class="form-label">Price</label>
+                <input
+                    name="product[price]"
+                    id="price"
+                    type="number"
+                    class="form-control"
+                    placeholder="Enter price"
+                    min="1"
+                    required
+                >
+                <div class="invalid-feedback">Price is required.</div>
+            </div>
 
-        <textarea
-          name="listing[description]"
-          class="form-control"
-          rows="4"
-          placeholder="Enter description"
-          required
-        ></textarea>
+            <div class="mb-4">
+                <label for="category" class="form-label">Category</label>
+                <select
+                    name="product[category]"
+                    id="category"
+                    class="form-select"
+                    required
+                >
+                    <option value="">Select Category</option>
+                    <% categories.forEach((category) => { %>
+                        <option value="<%= category %>"><%= category %></option>
+                    <% }) %>
+                </select>
+                <div class="invalid-feedback">Please select a category.</div>
+            </div>
 
-        <div class="invalid-feedback">
-          Description is required
-        </div>
-      </div>
-
-      <!-- IMAGE -->
-      <div class="mb-3">
-        <label for="image" class="form-label">
-          Listing Image
-        </label>
-
-        <input
-          name="image"
-          id="image"
-          type="file"
-          class="form-control"
-          accept="image/*"
-        >
-
-        <div class="form-text">
-          Upload JPG, PNG, JPEG, or WEBP image
-        </div>
-      </div>
-
-      <!-- PRICE -->
-      <div class="mb-3">
-        <label class="form-label">Price</label>
-
-        <input
-          name="listing[price]"
-          type="number"
-          class="form-control"
-          placeholder="Enter price"
-          min="1"
-          required
-        >
-
-        <div class="invalid-feedback">
-          Price is required
-        </div>
-      </div>
-
-      <!-- LOCATION -->
-      <div class="mb-3">
-        <label class="form-label">Location</label>
-
-        <input
-          name="listing[location]"
-          type="text"
-          class="form-control"
-          placeholder="Enter location"
-          required
-        >
-
-        <div class="invalid-feedback">
-          Location is required
-        </div>
-      </div>
-
-      <!-- COUNTRY -->
-      <div class="mb-3">
-        <label class="form-label">Country</label>
-
-        <input
-          name="listing[country]"
-          type="text"
-          class="form-control"
-          placeholder="Enter country"
-          required
-        >
-
-        <div class="invalid-feedback">
-          Country is required
-        </div>
-      </div>
-
-      <!-- CATEGORY -->
-      <div class="mb-3">
-        <label class="form-label">Category</label>
-
-        <select
-          name="listing[category]"
-          class="form-select"
-          required
-        >
-          <option value="">Select Category</option>
-          <option value="Country">Country</option>
-          <option value="City">City</option>
-          <option value="Other">Other</option>
-        </select>
-
-        <div class="invalid-feedback">
-          Please select a category
-        </div>
-      </div>
-
-      <!-- SUBMIT BUTTON -->
-      <button type="submit" class="btn btn-dark add-btn mb-5">
-        Create Listing
-      </button>
-
-    </form>
-  </div>
+            <button type="submit" class="btn btn-dark add-btn mb-5">
+                Add Product
+            </button>
+        </form>
+    </div>
 </div>
-
-<!-- Bootstrap Validation Script -->
-<script>
-(() => {
-  'use strict'
-
-  const forms = document.querySelectorAll('.needs-validation')
-
-  Array.from(forms).forEach(form => {
-    form.addEventListener(
-      'submit',
-      event => {
-        if (!form.checkValidity()) {
-          event.preventDefault()
-          event.stopPropagation()
-        }
-
-        form.classList.add('was-validated')
-      },
-      false
-    )
-  })
-})()
-</script>

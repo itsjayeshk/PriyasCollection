@@ -2,89 +2,42 @@ const express = require("express");
 const router = express.Router();
 
 const wrapAsync = require("../utils/wrapAsync.js");
+const { isLoggedIn, validateProduct } = require("../middleware.js");
+const { productImageUpload } = require("../utils/upload.js");
+const productController = require("../controllers/listings.js");
 
-const {
-    isLoggedIn,
-    validateListing
-} = require("../middleware.js");
+router.get("/", wrapAsync(productController.index));
 
-const listingController = require("../controllers/listings.js");
+router.get("/new", isLoggedIn, productController.renderNewForm);
 
-
-// ================= CLOUDINARY + MULTER =================
-const multer = require("multer");
-const { storage } = require("../utils/cloudConfig");
-
-const upload = multer({ storage });
-
-
-// ================= INDEX ROUTE =================
-router.get(
-    "/",
-    wrapAsync(listingController.index)
-);
-
-
-// ================= NEW ROUTE =================
-router.get(
-    "/new",
-    isLoggedIn,
-    listingController.renderNewForm
-);
-
-
-// ================= CREATE ROUTE =================
 router.post(
     "/",
     isLoggedIn,
-
-    upload.single("image"),
-
-    validateListing,
-
-    wrapAsync(listingController.createListing)
+    productImageUpload,
+    validateProduct,
+    wrapAsync(productController.createProduct)
 );
 
+router.get("/:id", wrapAsync(productController.showProduct));
 
-// ================= SHOW ROUTE =================
-router.get(
-    "/:id",
-    wrapAsync(listingController.showListing)
-);
-
-
-// ================= EDIT ROUTE =================
 router.get(
     "/:id/edit",
-
     isLoggedIn,
-
-    wrapAsync(listingController.renderEditForm)
+    wrapAsync(productController.renderEditForm)
 );
 
-
-// ================= UPDATE ROUTE =================
 router.put(
     "/:id",
-
     isLoggedIn,
-
-    upload.single("image"),
-
-    validateListing,
-
-    wrapAsync(listingController.updateListing)
+    productImageUpload,
+    validateProduct,
+    wrapAsync(productController.updateProduct)
 );
 
-
-// ================= DELETE ROUTE =================
 router.delete(
     "/:id",
-
     isLoggedIn,
-
-    wrapAsync(listingController.destroyListing)
+    wrapAsync(productController.destroyProduct)
 );
-
 
 module.exports = router;

@@ -1,21 +1,25 @@
-// controllers/listings.js
-
-const Listing = require("../models/listing.js");
+const Product = require("../models/listing.js");
+const Review = require("../models/review.js");
 const ExpressError = require("../utils/ExpressError.js");
 const { cloudinary } = require("../utils/cloudinary.js");
-const { LISTINGS_FOLDER } = require("../utils/upload.js");
+const { PRODUCT_CATEGORIES } = require("../utils/productCategories.js");
 
-const DEFAULT_IMAGE_URL =
-    "https://images.unsplash.com/photo-1506744038136-46273834b3fb";
-
-const defaultImage = {
-    filename: "default-listing-image",
-    url: DEFAULT_IMAGE_URL,
+const DEFAULT_PRODUCT_IMAGE = {
+    filename: "default-product-image",
+    url: "/images/logo.png",
 };
+
+const LEGACY_PRODUCT_FIELDS = {
+    description: "",
+    location: "",
+    country: "",
+};
+
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 const getUploadedImage = (file) => {
     if (!file) {
-        return { ...defaultImage };
+        return { ...DEFAULT_PRODUCT_IMAGE };
     }
 
     return {
@@ -24,17 +28,28 @@ const getUploadedImage = (file) => {
     };
 };
 
-const isCloudinaryListingImage = (image) =>
+const getProductPayload = (body) => body.product || body.listing;
+
+const extractProductData = (body) => {
+    const { title, price, category } = getProductPayload(body);
+
+    return {
+        title: title.trim(),
+        price: Number(price),
+        category,
+    };
+};
+
+const isCloudinaryProductImage = (image) =>
     Boolean(
         image?.filename &&
-            image.filename.startsWith(`${LISTINGS_FOLDER}/`)
+            image.filename !== DEFAULT_PRODUCT_IMAGE.filename &&
+            image.filename.includes("/") &&
+            /^https?:\/\/res\.cloudinary\.com\//.test(image.url || "")
     );
 
-const isLocalUploadUrl = (url) =>
-    typeof url === "string" && url.startsWith("/uploads/");
-
 const deleteCloudinaryImage = async (image) => {
-    if (!isCloudinaryListingImage(image)) {
+    if (!isCloudinaryProductImage(image)) {
         return;
     }
 
@@ -48,73 +63,74 @@ const deleteCloudinaryImage = async (image) => {
     }
 };
 
-// ================= INDEX ROUTE WITH FILTERS =================
-module.exports.index = async (req, res) => {
+const cleanupLegacyProductFields = async (productId) => {
+    await Product.updateOne(
+        { _id: productId },
+        { $unset: LEGACY_PRODUCT_FIELDS },
+        { strict: false }
+    );
+};
 
-    let { location, city } = req.query;
+const index = async (req, res) => {
+    const searchQuery =
+        typeof req.query.search === "string" ? req.query.search.trim() : "";
+    const requestedCategory =
+        typeof req.query.category === "string" ? req.query.category.trim() : "";
+    const selectedCategory = PRODUCT_CATEGORIES.includes(requestedCategory)
+        ? requestedCategory
+        : "";
 
-    let filter = {};
+    const filter = {};
 
-    // FILTER BY LOCATION
-    if (location && location.trim() !== "") {
-        filter.location = {
-            $regex: location,
+    if (searchQuery) {
+        filter.title = {
+            $regex: escapeRegex(searchQuery),
             $options: "i",
         };
     }
 
-    // FILTER BY COUNTRY
-    if (city && city.trim() !== "") {
-        filter.country = {
-            $regex: city,
-            $options: "i",
-        };
+    if (selectedCategory) {
+        filter.category = selectedCategory;
     }
 
-    const allListings = await Listing.find(filter);
+    const products = await Product.find(filter).sort({ _id: -1 });
 
     res.render("listings/index", {
-        allListings,
-        req,
+        products,
+        categories: PRODUCT_CATEGORIES,
+        searchQuery,
+        selectedCategory,
     });
 };
 
-// ================= NEW FORM =================
-module.exports.renderNewForm = (req, res) => {
-    res.render("listings/new");
+const renderNewForm = (req, res) => {
+    res.render("listings/new", {
+        categories: PRODUCT_CATEGORIES,
+    });
 };
 
-// ================= CREATE LISTING =================
-module.exports.createListing = async (req, res) => {
-
-    if (!req.body.listing) {
-        throw new ExpressError(400, "Send valid listing data");
+const createProduct = async (req, res) => {
+    if (!getProductPayload(req.body)) {
+        throw new ExpressError(400, "Send valid product data");
     }
 
-    const listingData = { ...req.body.listing };
-
-    delete listingData.image;
-
-    const newListing = new Listing({
-        ...listingData,
+    const product = new Product({
+        ...extractProductData(req.body),
         image: getUploadedImage(req.file),
+        owner: req.user._id,
     });
 
-    newListing.owner = req.user._id;
+    await product.save();
+    await cleanupLegacyProductFields(product._id);
 
-    await newListing.save();
-
-    req.flash("success", "Successfully created a new listing!");
-
+    req.flash("success", "Product added successfully!");
     res.redirect("/listings");
 };
 
-// ================= SHOW LISTING =================
-module.exports.showListing = async (req, res) => {
-
+const showProduct = async (req, res) => {
     const { id } = req.params;
 
-    const listing = await Listing.findById(id)
+    const product = await Product.findById(id)
         .populate({
             path: "reviews",
             populate: {
@@ -123,90 +139,98 @@ module.exports.showListing = async (req, res) => {
         })
         .populate("owner");
 
-    if (!listing) {
-        req.flash("error", "Listing does not exist!");
+    if (!product) {
+        req.flash("error", "Product does not exist!");
         return res.redirect("/listings");
     }
 
-    res.render("listings/show", { listing });
+    res.render("listings/show", {
+        product,
+    });
 };
 
-// ================= EDIT FORM =================
-module.exports.renderEditForm = async (req, res) => {
-
+const renderEditForm = async (req, res) => {
     const { id } = req.params;
 
-    const listing = await Listing.findById(id);
+    const product = await Product.findById(id);
 
-    if (!listing) {
-        req.flash("error", "Listing does not exist!");
+    if (!product) {
+        req.flash("error", "Product does not exist!");
         return res.redirect("/listings");
     }
 
-    res.render("listings/edit", { listing });
+    res.render("listings/edit", {
+        product,
+        categories: PRODUCT_CATEGORIES,
+    });
 };
 
-// ================= UPDATE LISTING =================
-module.exports.updateListing = async (req, res) => {
-
-    if (!req.body.listing) {
-        throw new ExpressError(400, "Send valid listing data");
+const updateProduct = async (req, res) => {
+    if (!getProductPayload(req.body)) {
+        throw new ExpressError(400, "Send valid product data");
     }
 
     const { id } = req.params;
+    const product = await Product.findById(id);
 
-    const listing = await Listing.findById(id);
-
-    if (!listing) {
-        req.flash("error", "Listing not found!");
+    if (!product) {
+        req.flash("error", "Product not found!");
         return res.redirect("/listings");
     }
 
-    const oldImage = listing.image
+    const oldImage = product.image
         ? {
-              filename: listing.image.filename,
-              url: listing.image.url,
+              filename: product.image.filename,
+              url: product.image.url,
           }
         : null;
 
-    const listingData = { ...req.body.listing };
-
-    delete listingData.image;
-
-    Object.assign(listing, listingData);
+    Object.assign(product, extractProductData(req.body));
 
     if (req.file) {
-        listing.image = getUploadedImage(req.file);
-    } else if (!listing.image?.url || isLocalUploadUrl(listing.image.url)) {
-        listing.image = { ...defaultImage };
+        product.image = getUploadedImage(req.file);
+    } else if (!product.image?.url) {
+        product.image = { ...DEFAULT_PRODUCT_IMAGE };
     }
 
-    await listing.save();
+    await product.save();
+    await cleanupLegacyProductFields(product._id);
 
     if (req.file) {
         await deleteCloudinaryImage(oldImage);
     }
 
-    req.flash("success", "Listing updated successfully!");
-
+    req.flash("success", "Product updated successfully!");
     res.redirect(`/listings/${id}`);
 };
 
-// ================= DELETE LISTING =================
-module.exports.destroyListing = async (req, res) => {
-
+const destroyProduct = async (req, res) => {
     const { id } = req.params;
 
-    const deletedListing = await Listing.findByIdAndDelete(id);
+    const deletedProduct = await Product.findByIdAndDelete(id);
 
-    if (!deletedListing) {
-        req.flash("error", "Listing not found!");
+    if (!deletedProduct) {
+        req.flash("error", "Product not found!");
         return res.redirect("/listings");
     }
 
-    await deleteCloudinaryImage(deletedListing.image);
+    await deleteCloudinaryImage(deletedProduct.image);
+    await Review.deleteMany({ _id: { $in: deletedProduct.reviews } });
 
-    req.flash("success", "Successfully deleted the listing!");
-
+    req.flash("success", "Product deleted successfully!");
     res.redirect("/listings");
+};
+
+module.exports = {
+    index,
+    renderNewForm,
+    createProduct,
+    showProduct,
+    renderEditForm,
+    updateProduct,
+    destroyProduct,
+    createListing: createProduct,
+    showListing: showProduct,
+    updateListing: updateProduct,
+    destroyListing: destroyProduct,
 };

@@ -1,26 +1,35 @@
+require("dotenv").config();
+
 const mongoose = require("mongoose");
 const initData = require("./data.js");
-const Listing = require("../models/listing.js");
+const Product = require("../models/listing.js");
 
-const MONGO_URL = "mongodb://127.0.0.1:27017/WanderPeeper";
+const MONGO_URL = process.env.MONGO_URL;
+const SEED_OWNER_ID =
+    process.env.SEED_OWNER_ID || "6a0046cbc9150a98192c8472";
 
 main()
-  .then(() => {
-    console.log("connected to DB");
-  })
-  .catch((err) => {
-    console.log(err);
-  });
+    .then(() => {
+        console.log("Connected to DB");
+    })
+    .catch((err) => {
+        console.log(err);
+    });
 
 async function main() {
-  await mongoose.connect(MONGO_URL);
+    await mongoose.connect(MONGO_URL);
 }
 
 const initDB = async () => {
-  await Listing.deleteMany({});
-  initData.data = initData.data.map((obj) => ({...obj, owner: "6a0046cbc9150a98192c8472"}));
-  await Listing.insertMany(initData.data);
-  console.log("data was initialized");
+    await Product.deleteMany({});
+
+    const products = initData.data.map((product) => ({
+        ...product,
+        owner: SEED_OWNER_ID,
+    }));
+
+    await Product.insertMany(products);
+    console.log("Product data initialized");
 };
 
 initDB();

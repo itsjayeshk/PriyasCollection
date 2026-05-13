@@ -1,11 +1,11 @@
-const path = require("path");
 const crypto = require("crypto");
+const path = require("path");
 const multer = require("multer");
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const ExpressError = require("./ExpressError.js");
 const { cloudinary, hasCloudinaryConfig } = require("./cloudinary.js");
 
-const LISTINGS_FOLDER = "wanderpeeper/listings";
+const PRODUCT_IMAGES_FOLDER = "priyas-collection/products";
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
 const allowedExtensions = new Set([".jpg", ".jpeg", ".png", ".webp"]);
@@ -38,16 +38,17 @@ const fileFilter = (req, file, cb) => {
         );
     }
 
-    cb(null, true);
+    return cb(null, true);
 };
 
 const storage = new CloudinaryStorage({
     cloudinary,
     params: {
-        folder: LISTINGS_FOLDER,
+        folder: PRODUCT_IMAGES_FOLDER,
         allowed_formats: ["jpg", "jpeg", "png", "webp"],
         resource_type: "image",
-        public_id: () => `${Date.now()}-${crypto.randomBytes(16).toString("hex")}`,
+        public_id: () =>
+            `${Date.now()}-${crypto.randomBytes(16).toString("hex")}`,
     },
 });
 
@@ -60,6 +61,10 @@ const upload = multer({
 });
 
 module.exports = {
-    LISTINGS_FOLDER,
-    uploadListingImage: upload.single("listing[image]"),
+    PRODUCT_IMAGES_FOLDER,
+    LISTINGS_FOLDER: PRODUCT_IMAGES_FOLDER,
+    storage,
+    upload,
+    productImageUpload: upload.single("image"),
+    uploadListingImage: upload.single("image"),
 };
